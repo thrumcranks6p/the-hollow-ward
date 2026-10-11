@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>THE HOLLOW WARD — Co-op Horror</title>
+<meta name="description" content="A first-person co-op horror game. Find the fuses, restore the power, escape St. Mercy Psychiatric Hospital. Don't let him see your light." />
+<meta name="theme-color" content="#000000" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='black'/%3E%3Ccircle cx='22' cy='30' r='5' fill='%23ffe9b0'/%3E%3Ccircle cx='42' cy='30' r='5' fill='%23ffe9b0'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="objective"></div>
+  <div id="team"></div>
+  <div id="crosshair"></div>
+  <div id="prompt"></div>
+  <div id="revive"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" class="bg" /><circle cx="18" cy="18" r="15" class="fg" id="revive-fg" /></svg></div>
+  <div id="message"></div>
+  <div id="hint"></div>
+  <div id="meters">
+    <div class="meter" id="m-battery"><span class="ico">LIGHT</span><div class="bar"><div class="fill"></div></div></div>
+    <div class="meter" id="m-stamina"><span class="ico">BREATH</span><div class="bar"><div class="fill"></div></div></div>
+  </div>
+  <div id="breath"><div class="label">HOLD <b>[SPACE]</b> — HOLD YOUR BREATH</div><div class="bar"><div class="fill"></div></div></div>
+</div>
+<div id="locker-overlay" class="hidden"></div>
+<div id="down-overlay" class="hidden"><h2>YOU ARE DOWN</h2><p>You're bleeding out on the cold floor. A teammate can revive you.</p></div>
+<div id="escaped-overlay" class="hidden"><h2>YOU ESCAPED</h2><p>The night air burns your lungs. Waiting for the others...</p></div>
+<div id="intro" class="hidden"><div class="l1">ST. MERCY PSYCHIATRIC HOSPITAL</div><div class="l2">October 31st, 1987 &mdash; 3:13 AM</div></div>
+<div id="note" class="hidden"><div class="paper"><h3 id="note-title"></h3><pre id="note-text"></pre><div class="close">[E] or click to put it down</div></div></div>
+
+<div id="loading" class="screen">
+  <div class="title glitch" data-t="THE HOLLOW WARD">THE HOLLOW WARD</div>
+  <div class="load-bar"><div id="load-fill"></div></div>
+  <div id="load-text">Unlocking the asylum...</div>
+</div>
+
+<div id="menu" class="screen hidden">
+  <div class="title glitch" data-t="THE HOLLOW WARD">THE HOLLOW WARD</div>
+  <div class="subtitle">a first-person co-op horror &middot; 1&ndash;4 players</div>
+  <div class="menu-box">
+    <label class="lbl">YOUR NAME <input id="name" maxlength="14" placeholder="Patient 0412" autocomplete="off" /></label>
+    <button id="b-solo">PLAY ALONE</button>
+    <button id="b-host">HOST CO-OP</button>
+    <div class="join-row"><input id="join-code" maxlength="5" placeholder="ROOM CODE" autocomplete="off" /><button id="b-join">JOIN</button></div>
+    <div class="row2"><button id="b-settings" class="small">SETTINGS</button><button id="b-howto" class="small">HOW TO PLAY</button></div>
+  </div>
+  <div class="warn">Put headphones on. Turn the lights off. Turn the volume up.</div>
+  <div id="menu-error" class="err"></div>
+</div>
+
+<div id="lobby" class="screen hidden">
+  <div class="title small-title">CO-OP LOBBY</div>
+  <div class="code-box">ROOM CODE<div id="room-code">-----</div><button id="b-copy" class="small">COPY INVITE LINK</button></div>
+  <ul id="lobby-players"></ul>
+  <label class="chk"><input type="checkbox" id="voice-chk" /> Proximity voice chat (uses your mic)</label>
+  <button id="b-start">START THE NIGHTMARE</button>
+  <div id="lobby-wait">Waiting for the host to start...</div>
+  <button id="b-leave" class="small">LEAVE</button>
+  <div id="lobby-error" class="err"></div>
+</div>
+
+<div id="settings" class="screen hidden">
+  <div class="title small-title">SETTINGS</div>
+  <div class="settings-box">
+    <label>Mouse sensitivity <input type="range" id="s-sens" min="0.2" max="3" step="0.05" /><span id="s-sens-v"></span></label>
+    <label>Field of view <input type="range" id="s-fov" min="55" max="95" step="1" /><span id="s-fov-v"></span></label>
+    <label>Brightness <input type="range" id="s-bright" min="0.7" max="1.6" step="0.02" /><span id="s-bright-v"></span></label>
+    <label>Volume <input type="range" id="s-vol" min="0" max="1" step="0.01" /><span id="s-vol-v"></span></label>
+    <label>Graphics quality <select id="s-quality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+    <label class="chk"><input type="checkbox" id="s-invert" /> Invert mouse Y</label>
+  </div>
+  <button id="b-settings-back">BACK</button>
+</div>
+
+<div id="howto" class="screen hidden">
+  <div class="title small-title">HOW TO SURVIVE</div>
+  <div class="howto-box">
+    <p>You wake up inside <b>St. Mercy Psychiatric Hospital</b>. The power is out. Something tall walks the halls.</p>
+    <p><b>1.</b> Find the <b class="amber">4 glowing fuses</b> hidden in the wards.<br /><b>2.</b> Bring the power back at the <b>generator</b>.<br /><b>3.</b> Run for the <b class="red">EXIT gate</b> before he catches you.</p>
+    <table>
+      <tr><td>W A S D</td><td>Move</td></tr>
+      <tr><td>SHIFT</td><td>Run (loud!)</td></tr>
+      <tr><td>C / CTRL</td><td>Crouch (quiet)</td></tr>
+      <tr><td>F / Right-click</td><td>Flashlight on/off</td></tr>
+      <tr><td>E</td><td>Interact &middot; open doors &middot; hide in lockers &middot; revive</td></tr>
+      <tr><td>SPACE</td><td>Hold your breath (inside a locker)</td></tr>
+      <tr><td>ESC</td><td>Pause / release mouse</td></tr>
+    </table>
+    <p class="dim">He hears you run. He sees your light. Doors slow him down. Lockers hide you, unless he watches you get in. Batteries keep your flashlight alive.</p>
+  </div>
+  <button id="b-howto-back">BACK</button>
+</div>
+
+<div id="clickstart" class="screen hidden">
+  <div class="title small-title">CLICK TO ENTER</div>
+  <p class="dim">Your mouse controls your eyes. Press ESC to let go.</p>
+</div>
+
+<div id="pause" class="screen hidden">
+  <div class="title small-title">PAUSED</div>
+  <button id="b-resume">RESUME</button>
+  <button id="b-pause-settings" class="small">SETTINGS</button>
+  <button id="b-quit" class="small">QUIT TO MENU</button>
+  <p class="dim" id="pause-coop">Co-op games don't pause. He is still out there.</p>
+</div>
+
+<div id="end" class="screen hidden">
+  <div class="title" id="end-title">YOU DIED</div>
+  <div id="end-sub"></div>
+  <ul id="end-stats"></ul>
+  <button id="b-again">PLAY AGAIN</button>
+  <button id="b-end-menu" class="small">MAIN MENU</button>
+</div>
+
+<div id="fatal" class="screen hidden">
+  <div class="title small-title">SOMETHING WENT WRONG</div>
+  <p id="fatal-text"></p>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

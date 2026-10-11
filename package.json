@@ -1,0 +1,11 @@
+{
+  "name": "the-hollow-ward",
+  "version": "1.0.0",
+  "private": true,
+  "description": "First-person co-op horror game. Custom WebGL2 engine, procedural everything, zero assets.",
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "deploy": "npx surge dist"
+  }
+}
